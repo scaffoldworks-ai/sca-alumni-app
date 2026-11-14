@@ -24,6 +24,7 @@ const options = { region: 'europe-west2', secrets: [AC_API_URL, AC_API_KEY], max
 
 // Names as they appear in ActiveCampaign.
 const APPROVED_TAG = 'SCA Alumni App: Approved';
+const APP_LIST_ID = '116'; // "SCA Alumni App Members" — ActiveCampaign only emails people who are on a list
 const ALUMNI_TAG_ID = '1'; // "Alumni"
 const ALUMNI_LIST_IDS = ['7', '82']; // "Alumni", "Master List SCA Alumni database"
 
@@ -86,6 +87,8 @@ exports.onMemberApproved = onDocumentUpdated({ ...options, document: 'members/{u
     const synced = await ac('contact/sync', { method: 'POST', body: JSON.stringify({ contact: { email, firstName: firstName || '', lastName: rest.join(' ') } }) });
     const contactId = synced.contact && synced.contact.id;
     if (!contactId) throw new Error('No contact came back from ActiveCampaign');
+
+    await ac('contactLists', { method: 'POST', body: JSON.stringify({ contactList: { list: APP_LIST_ID, contact: contactId, status: 1 } }) });
 
     const search = await ac(`tags?search=${encodeURIComponent(APPROVED_TAG)}`);
     let tag = (search.tags || []).find((t) => t.tag === APPROVED_TAG);

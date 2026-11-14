@@ -12,7 +12,8 @@ import { usePendingMembers } from '@/lib/members';
 import { Avatar, BackLink, Body, Button, C, ErrorText, F, Field, H1, Label, Pill, Screen } from '@/ui';
 
 type OpenRow = { id: string; name: string; intake: string; visibility: 'team' | 'all' };
-type Tab = 'queue' | 'jobs' | 'intros' | 'open';
+type Tab = 'queue' | 'jobs' | 'intros' | 'open' | 'reports';
+type Report = { id: string; byName: string; about: string; aboutName: string; where: string; text?: string; reason?: string; createdAt?: { seconds: number } | null };
 
 const card = { borderWidth: 1, borderColor: C.line, borderRadius: 18, padding: 18, marginBottom: 14 } as const;
 
@@ -119,6 +120,38 @@ function Intro({ i, onError }: { i: Interest; onError: (msg: string) => void }) 
   );
 }
 
+function ReportCard({ r, onError }: { r: Report; onError: (msg: string) => void }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  async function done() {
+    setBusy(true);
+    onError('');
+    try {
+      await updateDoc(doc(db, 'reports', r.id), { status: 'done' });
+    } catch {
+      onError("Couldn't update that report. Try again.");
+      setBusy(false);
+    }
+  }
+  return (
+    <View style={card}>
+      <Label color={C.red}>{`Reported by ${r.byName}`}</Label>
+      <Pressable onPress={() => router.push(`/member/${r.about}`)}>
+        <Text style={{ fontFamily: F.bold, fontSize: 17, letterSpacing: -0.3, color: C.ink, marginTop: 8 }}>{r.aboutName}</Text>
+        <Text style={{ fontFamily: F.medium, fontSize: 12.5, color: C.grey, marginTop: 2 }}>{r.where === 'profile' ? 'From their profile' : `In ${r.where}`}</Text>
+      </Pressable>
+      {r.text ? (
+        <View style={{ backgroundColor: C.soft, borderRadius: 12, padding: 14, marginTop: 12 }}>
+          <Label>The message</Label>
+          <Text style={{ fontFamily: F.medium, fontSize: 14, lineHeight: 21, color: C.ink, marginTop: 6 }}>{r.text}</Text>
+        </View>
+      ) : null}
+      {r.reason ? <Text style={{ fontFamily: F.medium, fontSize: 14, lineHeight: 21, color: C.ink, marginTop: 12 }}>&ldquo;{r.reason}&rdquo;</Text> : null}
+      <Button title="Dealt with" kind="dark" onPress={done} busy={busy} style={{ height: 50, marginTop: 16 }} />
+    </View>
+  );
+}
+
 export default function DeanScreen() {
   return (
     <Gate admin>
@@ -133,6 +166,7 @@ function Dean() {
   const jobs = useLive<Job>('pendingJobs', () => query(collection(db, 'jobs'), where('status', '==', 'pending')), []);
   const intros = useLive<Interest>('newInterest', () => query(collection(db, 'interest'), where('status', '==', 'new')), []);
   const openRows = useLive<OpenRow>('open', () => query(collection(db, 'opportunity'), where('open', '==', true)), []);
+  const reports = useLive<Report>('reports', () => query(collection(db, 'reports'), where('status', '==', 'new')), []);
   const open = openRows ? [...openRows].sort((a, b) => a.name.localeCompare(b.name)) : null;
   const [tab, setTab] = useState<Tab>('queue');
   const [error, setError] = useState('');
@@ -142,7 +176,7 @@ function Dean() {
     setTab(t);
     setError('');
   };
-  const headline = { queue: 'Who gets *in.*', jobs: 'What goes *live.*', intros: 'Who meets *whom.*', open: 'Who is *looking.*' }[tab];
+  const headline = { queue: 'Who gets *in.*', jobs: 'What goes *live.*', intros: 'Who meets *whom.*', open: 'Who is *looking.*', reports: 'What needs a *word.*' }[tab];
 
   return (
     <Screen>
@@ -156,6 +190,7 @@ function Dean() {
         <Pill title={`Jobs${n(jobs)}`} active={tab === 'jobs'} onPress={() => pick('jobs')} />
         <Pill title={`Introductions${n(intros)}`} active={tab === 'intros'} onPress={() => pick('intros')} />
         <Pill title={`Open to work${n(open)}`} active={tab === 'open'} onPress={() => pick('open')} />
+        <Pill title={`Reports${n(reports)}`} active={tab === 'reports'} onPress={() => pick('reports')} />
       </ScrollView>
       <ErrorText>{error}</ErrorText>
 
@@ -199,6 +234,15 @@ function Dean() {
               </View>
               <Label color={r.visibility === 'all' ? C.ink : C.red}>{r.visibility === 'all' ? 'All alumni' : 'Only you'}</Label>
             </Pressable>
+          ))}
+        </>
+      ) : null}
+
+      {tab === 'reports' ? (
+        <>
+          {reports && reports.length === 0 ? <Body>Nothing reported. If a member flags a person or a message, it comes straight here.</Body> : null}
+          {newestFirst(reports ?? []).map((r) => (
+            <ReportCard key={r.id} r={r} onError={setError} />
           ))}
         </>
       ) : null}

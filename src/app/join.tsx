@@ -2,12 +2,12 @@ import { Redirect, useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { friendlyAuthError, useAuth } from '@/lib/auth';
 import { auth, db } from '@/lib/firebase';
 import { INTAKES } from '@/lib/intakes';
-import { BackLink, Body, Button, ErrorText, Field, H1, Label, Pill, Screen } from '@/ui';
+import { BackLink, Body, Button, C, ErrorText, F, Field, H1, Label, Pill, Screen } from '@/ui';
 
 export default function Join() {
   const { user, member } = useAuth();
@@ -79,6 +79,9 @@ export default function Join() {
       </View>
 
       <Field label="Optional" value={note} onChangeText={setNote} placeholder="Something only a classmate would know" multiline />
+      <Text onPress={() => router.push('/privacy')} style={{ fontFamily: F.medium, fontSize: 12.5, lineHeight: 18, color: C.grey }}>
+        By sending this you agree to us holding your details to run the alumni community. <Text style={{ color: C.ink, fontFamily: F.bold }}>Read how we look after them.</Text>
+      </Text>
     </Screen>
   );
 }

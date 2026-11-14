@@ -39,7 +39,8 @@ export default function Home() {
   const pending = usePendingMembers(isAdmin);
   const pendingJobs = useLive<Job>('pendingJobs', () => (isAdmin ? query(collection(db, 'jobs'), where('status', '==', 'pending')) : null), [isAdmin]);
   const intros = useLive<Interest>('newInterest', () => (isAdmin ? query(collection(db, 'interest'), where('status', '==', 'new')) : null), [isAdmin]);
-  const waiting = (pending?.length ?? 0) + (pendingJobs?.length ?? 0) + (intros?.length ?? 0);
+  const reports = useLive<{ id: string }>('reports', () => (isAdmin ? query(collection(db, 'reports'), where('status', '==', 'new')) : null), [isAdmin]);
+  const waiting = (pending?.length ?? 0) + (pendingJobs?.length ?? 0) + (intros?.length ?? 0) + (reports?.length ?? 0);
   const notes = useAnnouncements(member);
   if (!member) return null;
 

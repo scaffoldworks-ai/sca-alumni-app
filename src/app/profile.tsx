@@ -158,7 +158,8 @@ function Profile() {
       <Hairline style={{ marginTop: 28, marginBottom: 20 }} />
       <Label>Account</Label>
       <Text style={{ fontFamily: F.semi, fontSize: 14, color: C.ink, marginTop: 8 }}>{user.email}</Text>
-      <Button title="Sign out" kind="ghost" onPress={() => signOut(auth)} style={{ marginTop: 16 }} />
+      <Button title="How we look after your details" kind="quiet" onPress={() => router.push('/privacy')} style={{ marginTop: 6, alignSelf: 'flex-start', paddingHorizontal: 0 }} />
+      <Button title="Sign out" kind="ghost" onPress={() => signOut(auth)} style={{ marginTop: 6 }} />
       {confirmDelete ? (
         <View style={{ backgroundColor: C.soft, borderRadius: 14, padding: 16, marginTop: 14 }}>
           <Text style={{ fontFamily: F.bold, fontSize: 14.5, color: C.ink }}>Delete your account?</Text>

@@ -9,6 +9,7 @@ import { Gate } from '@/components/gate';
 import { useAuth } from '@/lib/auth';
 import { useDocLive, useLive, type Dm, type Message } from '@/lib/data';
 import { db } from '@/lib/firebase';
+import { useBlocked } from '@/lib/safety';
 import { C, F, Label } from '@/ui';
 
 export default function ChatScreen() {
@@ -32,10 +33,24 @@ function Chat() {
   const messages = useLive<Message>('messages', () => (key ? query(collection(db, base, key, 'messages'), orderBy('createdAt', 'desc'), limit(200)) : null), [id]);
   const [text, setText] = useState('');
   const [failed, setFailed] = useState(false);
+  const blocked = useBlocked(member?.id);
+  const [flag, setFlag] = useState<Message | null>(null);
+  const [flagged, setFlagged] = useState(false);
+  const visible = (messages ?? []).filter((m) => !blocked.includes(m.uid));
 
   if (!member) return null;
   const other = isDm ? (dm?.members ?? []).find((m) => m !== member.id) ?? '' : '';
   const title = isDm ? dm?.names?.[other] ?? 'Chat' : id.replace(/^intake_/, '');
+
+  async function reportFlag() {
+    if (!flag || !member) return;
+    try {
+      await addDoc(collection(db, 'reports'), { by: member.id, byName: member.name, about: flag.uid, aboutName: flag.name, where: isDm ? 'a one-to-one chat' : `the ${title} room`, text: flag.text.slice(0, 500), reason: '', status: 'new', createdAt: serverTimestamp() });
+      setFlagged(true);
+    } catch {
+      setFlag(null);
+    }
+  }
 
   async function send() {
     const body = text.trim();
@@ -66,7 +81,7 @@ function Chat() {
 
         <FlatList
           inverted
-          data={messages ?? []}
+          data={visible}
           keyExtractor={(m) => m.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14 }}
           keyboardShouldPersistTaps="handled"
@@ -79,19 +94,35 @@ function Chat() {
           }
           renderItem={({ item: m, index }) => {
             const own = m.uid === member.id;
-            const older = (messages ?? [])[index + 1];
+            const older = visible[index + 1];
             const showName = !isDm && !own && older?.uid !== m.uid;
             return (
               <View style={{ alignItems: own ? 'flex-end' : 'flex-start', marginTop: showName ? 12 : 4 }}>
                 {showName ? <Label style={{ marginBottom: 4, marginLeft: 4 }}>{m.name}</Label> : null}
-                <View style={{ maxWidth: '82%', backgroundColor: own ? C.ink : C.soft, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 }}>
+                <Pressable
+                  onLongPress={own ? undefined : () => { setFlag(m); setFlagged(false); }}
+                  delayLongPress={350}
+                  style={{ maxWidth: '82%', backgroundColor: own ? C.ink : C.soft, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 }}>
                   <Text style={{ fontFamily: F.medium, fontSize: 15, lineHeight: 21, color: own ? C.white : C.ink }}>{m.text}</Text>
-                </View>
+                </Pressable>
               </View>
             );
           }}
         />
 
+        {flag ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: C.soft, paddingHorizontal: 20, paddingVertical: 12 }}>
+            <Text style={{ flex: 1, fontFamily: F.semi, fontSize: 13, lineHeight: 18, color: C.ink }}>{flagged ? 'Sent to Marc. He’ll look into it.' : `Report ${flag.name.split(' ')[0]}’s message to Marc?`}</Text>
+            {flagged ? null : (
+              <Pressable onPress={reportFlag} hitSlop={8} style={{ marginLeft: 14 }}>
+                <Label color={C.red}>Report</Label>
+              </Pressable>
+            )}
+            <Pressable onPress={() => setFlag(null)} hitSlop={8} style={{ marginLeft: 16 }}>
+              <Label>{flagged ? 'Close' : 'Cancel'}</Label>
+            </Pressable>
+          </View>
+        ) : null}
         {failed ? <Text style={{ fontFamily: F.semi, fontSize: 12.5, color: C.red, paddingHorizontal: 20, paddingBottom: 6 }}>That didn&apos;t send. Try again.</Text> : null}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingTop: 8, paddingBottom: Math.max(insets.bottom, 12), borderTopWidth: 1, borderTopColor: C.line }}>
           <TextInput

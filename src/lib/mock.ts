@@ -40,6 +40,8 @@ export const MOCK_DATA: Record<string, unknown> = {
     { id: 'c1', title: 'How to have an idea', mentor: 'A. Mentor', topic: 'Ideas', minutes: '48', url: 'https://example.com', createdAt: s(4) },
     { id: 'c2', title: 'Writing headlines that travel', mentor: 'B. Mentor', topic: 'Copy', minutes: '36', url: 'https://example.com', createdAt: s(9) },
   ],
+  reports: [{ id: 'r1', byName: 'Cleo Example', about: 'u3', aboutName: 'Ben Placeholder', where: 'the Busk room', text: 'Sample of a message somebody flagged.', status: 'new', createdAt: s(1) }],
+  settings: { id: 'u1', blocked: [] },
   dms: [{ id: 'u1_u2', members: ['u1', 'u2'], names: { u1: 'Sample Dean', u2: 'Ada Sample' }, lastText: 'See you at the reunion?', updatedAt: s(1) }],
   dm: { id: 'u1_u2', members: ['u1', 'u2'], names: { u1: 'Sample Dean', u2: 'Ada Sample' } },
   messages: [

@@ -120,6 +120,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Reports go to the Dean. Members can send one but never read them.
+    match /reports/{id} {
+      allow create: if isApproved()
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.status == 'new';
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Private settings, such as who a member has blocked. Only that member can see them.
+    match /settings/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
     // Intake rooms. Only people from that intake can read or post.
     match /rooms/{roomId}/messages/{messageId} {
       allow read: if isApproved() && roomId == 'intake_' + me().intake;

@@ -7,6 +7,7 @@ import { Gate } from '@/components/gate';
 import { useAuth } from '@/lib/auth';
 import { useLive, type Dm } from '@/lib/data';
 import { db } from '@/lib/firebase';
+import { useBlocked } from '@/lib/safety';
 import { Avatar, BackLink, Body, Button, C, F, H1, Label, Screen } from '@/ui';
 
 export default function ChatsScreen() {
@@ -22,8 +23,9 @@ function Chats() {
   const router = useRouter();
   const uid = member?.id;
   const dms = useLive<Dm>('dms', () => (uid ? query(collection(db, 'dms'), where('members', 'array-contains', uid)) : null), [uid]);
+  const blocked = useBlocked(uid);
   if (!member) return null;
-  const sorted = [...(dms ?? [])].filter((d) => d.lastText).sort((a, b) => (b.updatedAt?.seconds ?? 0) - (a.updatedAt?.seconds ?? 0));
+  const sorted = [...(dms ?? [])].filter((d) => d.lastText && !d.members.some((m) => blocked.includes(m))).sort((a, b) => (b.updatedAt?.seconds ?? 0) - (a.updatedAt?.seconds ?? 0));
 
   return (
     <Screen>

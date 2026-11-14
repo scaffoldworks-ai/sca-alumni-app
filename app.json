@@ -8,9 +8,10 @@
     "scheme": "scaalumni",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "ai.scaffoldworks.scaalumni",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +21,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "ai.scaffoldworks.scaalumni"
+      "package": "ai.scaffoldworks.scaalumni",
+      "versionCode": 1
     },
     "web": {
       "output": "single",

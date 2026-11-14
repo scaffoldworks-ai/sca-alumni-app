@@ -3,13 +3,15 @@ import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { ADMIN_EMAILS, auth, db } from './firebase';
+import { MOCK, MOCK_MEMBER } from './mock';
 
 export type MemberStatus = 'pending' | 'approved' | 'declined';
 
 export type Member = {
   id: string;
   name: string;
-  email: string;
+  /** Only on older records. New sign-ups keep their email in a separate, private record. */
+  email?: string;
   intake: string;
   note?: string;
   status: MemberStatus;
@@ -42,7 +44,21 @@ const AuthContext = createContext<AuthState>({
   refreshUser: async () => {},
 });
 
+const MOCK_STATE: AuthState = {
+  loading: false,
+  user: { uid: MOCK_MEMBER.id, email: MOCK_MEMBER.email } as User,
+  member: MOCK_MEMBER,
+  isAdminEmail: true,
+  isAdmin: true,
+  refreshUser: async () => {},
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  if (MOCK) return <AuthContext.Provider value={MOCK_STATE}>{children}</AuthContext.Provider>;
+  return <RealAuthProvider>{children}</RealAuthProvider>;
+}
+
+function RealAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [verified, setVerified] = useState(false);
   const [member, setMember] = useState<Member | null>(null);

@@ -14,10 +14,14 @@ service cloud.firestore {
         && request.auth.token.email in ['marc@scaffoldworks.ai'];
     }
 
+    function me() {
+      return get(/databases/$(database)/documents/members/$(request.auth.uid)).data;
+    }
+
     function isApproved() {
       return signedIn()
         && exists(/databases/$(database)/documents/members/$(request.auth.uid))
-        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.status == 'approved';
+        && me().status == 'approved';
     }
 
     match /members/{uid} {
@@ -26,20 +30,27 @@ service cloud.firestore {
         && (request.auth.uid == uid || isAdmin() || (isApproved() && resource.data.status == 'approved'));
       allow list: if isAdmin() || (isApproved() && resource.data.status == 'approved');
 
-      // Anyone can ask to join, but only as "pending" and only under their own sign-in email.
+      // Anyone can ask to join, but only as "pending".
       allow create: if signedIn()
         && request.auth.uid == uid
-        && request.resource.data.status == 'pending'
-        && request.resource.data.email == request.auth.token.email;
+        && request.resource.data.status == 'pending';
 
-      // Members edit their own details but cannot approve themselves or change their email.
+      // Members edit their own details but cannot approve themselves.
       allow update: if isAdmin()
         || (signedIn()
             && request.auth.uid == uid
-            && request.resource.data.status == resource.data.status
-            && request.resource.data.email == resource.data.email);
+            && request.resource.data.status == resource.data.status);
 
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    // Email addresses. Only the member and the Dean can read them.
+    match /contact/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.email == request.auth.token.email;
+      allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
     }
 
     // Who is open to opportunities, and who may see it. Kept apart from the member
@@ -48,6 +59,79 @@ service cloud.firestore {
       allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
       allow write: if signedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    // Jobs. Members post them as "pending"; only the Dean can make one live.
+    match /jobs/{jobId} {
+      allow read: if isAdmin()
+        || (isApproved() && (resource.data.status == 'live' || resource.data.postedBy == request.auth.uid));
+      allow create: if isAdmin()
+        || (isApproved()
+            && request.resource.data.postedBy == request.auth.uid
+            && request.resource.data.status == 'pending'
+            && request.resource.data.marcSays == '');
+      // The person who posted a live job may close it, and change nothing else.
+      allow update: if isAdmin()
+        || (isApproved()
+            && resource.data.postedBy == request.auth.uid
+            && resource.data.status == 'live'
+            && request.resource.data.status == 'closed'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+      allow delete: if isAdmin();
+    }
+
+    // "I'm interested" requests. They go to the Dean, who makes the introduction.
+    match /interest/{id} {
+      allow read: if isAdmin() || (signedIn() && (resource == null || resource.data.uid == request.auth.uid));
+      allow create: if isApproved()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'new'
+        && id == request.resource.data.jobId + '_' + request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Events. The Dean adds them; members say whether they are going.
+    match /events/{eventId} {
+      allow read: if isApproved() || isAdmin();
+      allow write: if isAdmin();
+
+      match /going/{uid} {
+        allow read: if isApproved() || isAdmin();
+        allow write: if isApproved() && request.auth.uid == uid;
+      }
+    }
+
+    // Intake rooms. Only people from that intake can read or post.
+    match /rooms/{roomId}/messages/{messageId} {
+      allow read: if isApproved() && roomId == 'intake_' + me().intake;
+      allow create: if isApproved()
+        && roomId == 'intake_' + me().intake
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 2000;
+    }
+
+    // One-to-one chats. Only the two people in the chat can see it.
+    match /dms/{chatId} {
+      allow get: if signedIn() && (resource == null || request.auth.uid in resource.data.members);
+      allow list: if signedIn() && request.auth.uid in resource.data.members;
+      allow create: if isApproved()
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.members.size() == 2
+        && chatId == request.resource.data.members[0] + '_' + request.resource.data.members[1];
+      allow update: if isApproved()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.members == resource.data.members;
+
+      match /messages/{messageId} {
+        allow read: if isApproved()
+          && request.auth.uid in get(/databases/$(database)/documents/dms/$(chatId)).data.members;
+        allow create: if isApproved()
+          && request.auth.uid in get(/databases/$(database)/documents/dms/$(chatId)).data.members
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 2000;
+      }
     }
   }
 }

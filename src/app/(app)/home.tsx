@@ -3,6 +3,10 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
+import { collection, query, where } from 'firebase/firestore';
+
+import { useLive, type Interest, type Job } from '@/lib/data';
+import { db } from '@/lib/firebase';
 import { useApprovedMembers, usePendingMembers, workLine } from '@/lib/members';
 import { Avatar, Body, C, F, H1, Hairline, Label, Logo, Screen } from '@/ui';
 
@@ -21,10 +25,8 @@ function Stat({ value, label }: { value: number | string; label: string }) {
 }
 
 const NEXT = [
-  { icon: 'briefcase-outline', title: 'Jobs', line: 'Posted by alumni, approved by Marc, with a "Marc says" on each.' },
-  { icon: 'chatbubbles-outline', title: 'Chat', line: 'One to one, and a room for every intake.' },
-  { icon: 'calendar-outline', title: 'Events', line: 'Reunions, talks and portfolio days.' },
   { icon: 'play-circle-outline', title: 'Classes', line: 'The full class library, for alumni only.' },
+  { icon: 'notifications-outline', title: 'Notifications', line: 'A nudge when Marc posts, a job lands or someone messages you.' },
 ] as const;
 
 export default function Home() {
@@ -32,6 +34,9 @@ export default function Home() {
   const router = useRouter();
   const members = useApprovedMembers();
   const pending = usePendingMembers(isAdmin);
+  const pendingJobs = useLive<Job>('pendingJobs', () => (isAdmin ? query(collection(db, 'jobs'), where('status', '==', 'pending')) : null), [isAdmin]);
+  const intros = useLive<Interest>('newInterest', () => (isAdmin ? query(collection(db, 'interest'), where('status', '==', 'new')) : null), [isAdmin]);
+  const waiting = (pending?.length ?? 0) + (pendingJobs?.length ?? 0) + (intros?.length ?? 0);
   if (!member) return null;
 
   const first = member.name.split(' ')[0];
@@ -47,9 +52,14 @@ export default function Home() {
           <Logo size={34} />
           <Label color={C.ink} style={{ marginLeft: 10 }}>SCA Alumni</Label>
         </View>
-        <Pressable onPress={() => router.push('/profile')} accessibilityLabel="Your profile" hitSlop={8}>
-          <Avatar name={member.name} size={38} dark />
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable onPress={() => router.push('/chats')} accessibilityLabel="Chats" hitSlop={8} style={{ marginRight: 16 }}>
+            <Ionicons name="chatbubbles-outline" size={26} color={C.ink} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/profile')} accessibilityLabel="Your profile" hitSlop={8}>
+            <Avatar name={member.name} size={38} dark />
+          </Pressable>
+        </View>
       </View>
 
       <Label>{member.intake}</Label>
@@ -61,10 +71,10 @@ export default function Home() {
           <View style={{ flex: 1 }}>
             <Label color="#9A9A9A">Dean&apos;s desk</Label>
             <Text style={{ fontFamily: F.extra, fontSize: 22, letterSpacing: -0.6, color: C.white, marginTop: 8 }}>
-              {pending === null ? 'Checking the queue' : pending.length === 0 ? 'Nobody waiting' : `${pending.length} waiting for you`}
+              {pending === null ? 'Checking the queue' : waiting === 0 ? 'All clear' : `${waiting} waiting for you`}
             </Text>
           </View>
-          {pending && pending.length > 0 ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.red, marginRight: 12 }} /> : null}
+          {waiting > 0 ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: C.red, marginRight: 12 }} /> : null}
           <Ionicons name="arrow-forward" size={20} color={C.white} />
         </Pressable>
       ) : null}

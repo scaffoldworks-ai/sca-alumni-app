@@ -19,9 +19,6 @@ export default function AppLayout() {
       <Tabs.Screen name="jobs" />
       <Tabs.Screen name="events" />
       <Tabs.Screen name="classes" />
-      <Tabs.Screen name="profile" options={{ href: null }} />
-      <Tabs.Screen name="dean" options={{ href: null }} />
-      <Tabs.Screen name="member/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

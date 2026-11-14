@@ -4,6 +4,7 @@ import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'fire
 import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
+import { Gate } from '@/components/gate';
 import { useAuth } from '@/lib/auth';
 import { auth, db } from '@/lib/firebase';
 import { intakeYears } from '@/lib/intakes';
@@ -25,7 +26,15 @@ function Choice({ title, line, active, onPress }: { title: string; line: string;
   );
 }
 
-export default function Profile() {
+export default function ProfileScreen() {
+  return (
+    <Gate>
+      <Profile />
+    </Gate>
+  );
+}
+
+function Profile() {
   const { member, user } = useAuth();
   const router = useRouter();
   const [role, setRole] = useState(member?.role ?? '');
@@ -92,6 +101,7 @@ export default function Profile() {
     setError('');
     try {
       await deleteDoc(doc(db, 'opportunity', member.id)).catch(() => {});
+      await deleteDoc(doc(db, 'contact', member.id)).catch(() => {});
       await deleteDoc(doc(db, 'members', member.id));
       await deleteUser(auth.currentUser);
     } catch (e) {

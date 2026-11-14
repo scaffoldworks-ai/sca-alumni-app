@@ -1,9 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 
-import type { Member } from '@/lib/auth';
+import { Gate } from '@/components/gate';
+import { useAuth, type Member } from '@/lib/auth';
+import { dmId, useDocLive } from '@/lib/data';
 import { db } from '@/lib/firebase';
 import { intakeYears } from '@/lib/intakes';
 import { workLine } from '@/lib/members';
@@ -19,20 +21,34 @@ function Row({ label, value }: { label: string; value?: string }) {
   );
 }
 
-export default function MemberProfile() {
+export default function MemberProfileScreen() {
+  return (
+    <Gate>
+      <MemberProfile />
+    </Gate>
+  );
+}
+
+function MemberProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [m, setM] = useState<Member | null | undefined>(undefined);
+  const { member: me } = useAuth();
+  const m = useDocLive<Member>('member', () => (id ? doc(db, 'members', id) : null), [id]);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    setM(undefined);
-    return onSnapshot(
-      doc(db, 'members', id),
-      (snap) => setM(snap.exists() ? ({ id: snap.id, ...snap.data() } as Member) : null),
-      () => setM(null),
-    );
-  }, [id]);
+  async function message() {
+    if (!me || !m) return;
+    setBusy(true);
+    const chat = dmId(me.id, m.id);
+    try {
+      await setDoc(doc(db, 'dms', chat), { members: [me.id, m.id].sort(), names: { [me.id]: me.name, [m.id]: m.name }, updatedAt: serverTimestamp() }, { merge: true });
+      router.push(`/chat/dm_${chat}`);
+    } catch {
+      // Stay on the profile; the button can simply be tapped again.
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/people'));
 
@@ -75,7 +91,8 @@ export default function MemberProfile() {
       <Row label="Based in" value={m.city} />
       {!m.role && !m.employer && !m.discipline && !m.city ? <Body style={{ marginTop: 14 }}>{m.name.split(' ')[0]} hasn&apos;t filled in their profile yet.</Body> : null}
 
-      {portfolio ? <Button title="See their work" kind="ghost" onPress={() => Linking.openURL(portfolio)} style={{ marginTop: 20 }} /> : null}
+      {me && m.id !== me.id ? <Button title={`Message ${m.name.split(' ')[0]}`} kind="dark" onPress={message} busy={busy} style={{ marginTop: 24 }} /> : null}
+      {portfolio ? <Button title="See their work" kind="ghost" onPress={() => Linking.openURL(portfolio)} style={{ marginTop: 12 }} /> : null}
     </Screen>
   );
 }

@@ -35,12 +35,13 @@ export default function Join() {
       const current = user ?? (await createUserWithEmailAndPassword(auth, email.trim(), password)).user;
       await setDoc(doc(db, 'members', current.uid), {
         name: name.trim(),
-        email: current.email,
         intake,
         note: note.trim(),
         status: 'pending',
         createdAt: serverTimestamp(),
       });
+      // Email lives in its own record that only the member and the Dean can read.
+      await setDoc(doc(db, 'contact', current.uid), { email: current.email });
       if (!current.emailVerified) sendEmailVerification(current).catch(() => {});
       router.replace('/pending');
     } catch (e) {

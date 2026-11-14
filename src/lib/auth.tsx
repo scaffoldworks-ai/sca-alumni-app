@@ -2,6 +2,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
+import { clearLiveData } from './data';
 import { ADMIN_EMAILS, auth, db } from './firebase';
 import { MOCK, MOCK_MEMBER } from './mock';
 
@@ -22,6 +23,8 @@ export type Member = {
   portfolio?: string;
   /** True only when the member is open to opportunities AND has chosen to show that to all alumni. */
   openPublic?: boolean;
+  /** Set once the member has seen their welcome. */
+  welcomed?: boolean;
 };
 
 type AuthState = {
@@ -68,6 +71,7 @@ function RealAuthProvider({ children }: { children: ReactNode }) {
   useEffect(
     () =>
       onAuthStateChanged(auth, (u) => {
+        clearLiveData();
         setUser(u);
         setVerified(!!u?.emailVerified);
         setAuthReady(true);

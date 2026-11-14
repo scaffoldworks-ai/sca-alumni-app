@@ -101,6 +101,25 @@ service cloud.firestore {
       }
     }
 
+    // Messages from the Dean. Each member sees only the ones meant for them.
+    match /announcements/{id} {
+      allow read: if isAdmin()
+        || (isApproved() && (
+          resource.data.audience == 'all'
+          || (resource.data.audience == 'intake' && resource.data.intake == me().intake)
+          || (resource.data.audience == 'person' && resource.data.uid == request.auth.uid)
+          || (resource.data.audience == 'open'
+              && exists(/databases/$(database)/documents/opportunity/$(request.auth.uid))
+              && get(/databases/$(database)/documents/opportunity/$(request.auth.uid)).data.open == true)));
+      allow write: if isAdmin();
+    }
+
+    // The class library. Members watch; the Dean adds.
+    match /classes/{id} {
+      allow read: if isApproved() || isAdmin();
+      allow write: if isAdmin();
+    }
+
     // Intake rooms. Only people from that intake can read or post.
     match /rooms/{roomId}/messages/{messageId} {
       allow read: if isApproved() && roomId == 'intake_' + me().intake;

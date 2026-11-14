@@ -150,7 +150,8 @@ function Dean() {
       <Label>Dean&apos;s desk</Label>
       <View style={{ height: 10 }} />
       <H1>{headline}</H1>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24, marginTop: 20, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 24 }}>
+      <Button title="Send a message to members" kind="dark" onPress={() => router.push('/announce')} style={{ marginTop: 20, height: 50 }} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -24, marginTop: 16, marginBottom: 8 }} contentContainerStyle={{ paddingHorizontal: 24 }}>
         <Pill title={`People${n(pending)}`} active={tab === 'queue'} onPress={() => pick('queue')} />
         <Pill title={`Jobs${n(jobs)}`} active={tab === 'jobs'} onPress={() => pick('jobs')} />
         <Pill title={`Introductions${n(intros)}`} active={tab === 'intros'} onPress={() => pick('intros')} />

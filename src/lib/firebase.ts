@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 // Public client configuration for the SCA Alumni Firebase project.
@@ -30,7 +30,19 @@ function createAuth() {
 }
 
 export const auth = createAuth();
-export const db = getFirestore(app);
+function createDb() {
+  if (!firstInit) return getFirestore(app);
+  try {
+    // On the web, keep a copy of what was last seen so the app opens with content already in place.
+    return initializeFirestore(app, {
+      localCache: Platform.OS === 'web' ? persistentLocalCache({ tabManager: persistentMultipleTabManager() }) : memoryLocalCache(),
+    });
+  } catch {
+    return getFirestore(app);
+  }
+}
+
+export const db = createDb();
 
 /** People who run the app. Must match the list in firestore.rules. */
 export const ADMIN_EMAILS = ['marc@scaffoldworks.ai'];

@@ -32,7 +32,7 @@ export default function MemberProfileScreen() {
 function MemberProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { member: me } = useAuth();
+  const { member: me, isAdmin } = useAuth();
   const m = useDocLive<Member>('member', () => (id ? doc(db, 'members', id) : null), [id]);
   const [busy, setBusy] = useState(false);
 
@@ -92,6 +92,7 @@ function MemberProfile() {
       {!m.role && !m.employer && !m.discipline && !m.city ? <Body style={{ marginTop: 14 }}>{m.name.split(' ')[0]} hasn&apos;t filled in their profile yet.</Body> : null}
 
       {me && m.id !== me.id ? <Button title={`Message ${m.name.split(' ')[0]}`} kind="dark" onPress={message} busy={busy} style={{ marginTop: 24 }} /> : null}
+      {isAdmin && me && m.id !== me.id ? <Button title="Send a note from the Dean" kind="ghost" onPress={() => router.push({ pathname: '/announce', params: { to: m.id, name: m.name } })} style={{ marginTop: 12 }} /> : null}
       {portfolio ? <Button title="See their work" kind="ghost" onPress={() => Linking.openURL(portfolio)} style={{ marginTop: 12 }} /> : null}
     </Screen>
   );

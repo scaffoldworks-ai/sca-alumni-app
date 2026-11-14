@@ -5,7 +5,10 @@ import { Pressable, Text, View } from 'react-native';
 import { useAuth } from '@/lib/auth';
 import { collection, query, where } from 'firebase/firestore';
 
-import { useLive, type Interest, type Job } from '@/lib/data';
+import { doc, updateDoc } from 'firebase/firestore';
+
+import { useAnnouncements } from '@/lib/announcements';
+import { ago, useLive, type Interest, type Job } from '@/lib/data';
 import { db } from '@/lib/firebase';
 import { useApprovedMembers, usePendingMembers, workLine } from '@/lib/members';
 import { Avatar, Body, C, F, H1, Hairline, Label, Logo, Screen } from '@/ui';
@@ -25,8 +28,8 @@ function Stat({ value, label }: { value: number | string; label: string }) {
 }
 
 const NEXT = [
-  { icon: 'play-circle-outline', title: 'Classes', line: 'The full class library, for alumni only.' },
   { icon: 'notifications-outline', title: 'Notifications', line: 'A nudge when Marc posts, a job lands or someone messages you.' },
+  { icon: 'phone-portrait-outline', title: 'The real app', line: 'On the App Store and Google Play, once Apple and Google say yes.' },
 ] as const;
 
 export default function Home() {
@@ -37,6 +40,7 @@ export default function Home() {
   const pendingJobs = useLive<Job>('pendingJobs', () => (isAdmin ? query(collection(db, 'jobs'), where('status', '==', 'pending')) : null), [isAdmin]);
   const intros = useLive<Interest>('newInterest', () => (isAdmin ? query(collection(db, 'interest'), where('status', '==', 'new')) : null), [isAdmin]);
   const waiting = (pending?.length ?? 0) + (pendingJobs?.length ?? 0) + (intros?.length ?? 0);
+  const notes = useAnnouncements(member);
   if (!member) return null;
 
   const first = member.name.split(' ')[0];
@@ -65,6 +69,24 @@ export default function Home() {
       <Label>{member.intake}</Label>
       <View style={{ height: 10 }} />
       <H1 size={38}>{`${greeting()}, *${first}.*`}</H1>
+
+      {!member.welcomed && !isAdmin ? (
+        <View style={{ backgroundColor: C.red, borderRadius: 18, padding: 20, marginTop: 26 }}>
+          <Label color={C.white}>From Marc</Label>
+          <Text style={{ fontFamily: F.extra, fontSize: 22, letterSpacing: -0.6, color: C.white, marginTop: 8 }}>You&apos;re in, {first}.</Text>
+          <Text style={{ fontFamily: F.medium, fontSize: 14, lineHeight: 21, color: C.white, marginTop: 6 }}>Welcome back to the school. Say where you are now, find your intake, and look out for each other.</Text>
+          <Pressable onPress={() => updateDoc(doc(db, 'members', member.id), { welcomed: true }).catch(() => {})} hitSlop={10} style={{ marginTop: 14, alignSelf: 'flex-start' }}>
+            <Label color={C.white}>Got it</Label>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {(notes ?? []).slice(0, 3).map((n) => (
+        <View key={n.id} style={{ borderLeftWidth: 3, borderLeftColor: C.red, paddingLeft: 14, marginTop: 24 }}>
+          <Label color={C.red}>{`Marc · ${n.audience === 'intake' ? `to ${n.intake}` : n.audience === 'person' ? (n.uid === member.id ? 'to you' : `to ${n.toName}`) : n.audience === 'open' ? 'to those open to work' : 'to everyone'} · ${ago(n.createdAt)}`}</Label>
+          <Text style={{ fontFamily: F.semi, fontSize: 15.5, lineHeight: 23, color: C.ink, marginTop: 6 }}>{n.body}</Text>
+        </View>
+      ))}
 
       {isAdmin ? (
         <Pressable onPress={() => router.push('/dean')} style={{ backgroundColor: C.ink, borderRadius: 18, padding: 20, marginTop: 26, flexDirection: 'row', alignItems: 'center' }}>

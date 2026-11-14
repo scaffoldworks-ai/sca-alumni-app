@@ -35,6 +35,11 @@ export const MOCK_DATA: Record<string, unknown> = {
   ],
   event: { id: 'e1', title: 'Winter reunion', date: '2099-12-12', time: '6.30pm', place: 'A pub in Soho', description: 'Every intake welcome. First round is on the school.' },
   going: [{ id: 'u2', name: 'Ada Sample', intake: 'Busk' }, { id: 'u3', name: 'Ben Placeholder', intake: 'Cymbals' }],
+  announcements: [{ id: 'a1', body: 'Winter reunion is on. 12 December, a pub in Soho. Bring your book.', audience: 'all', createdAt: s(5) }],
+  classes: [
+    { id: 'c1', title: 'How to have an idea', mentor: 'A. Mentor', topic: 'Ideas', minutes: '48', url: 'https://example.com', createdAt: s(4) },
+    { id: 'c2', title: 'Writing headlines that travel', mentor: 'B. Mentor', topic: 'Copy', minutes: '36', url: 'https://example.com', createdAt: s(9) },
+  ],
   dms: [{ id: 'u1_u2', members: ['u1', 'u2'], names: { u1: 'Sample Dean', u2: 'Ada Sample' }, lastText: 'See you at the reunion?', updatedAt: s(1) }],
   dm: { id: 'u1_u2', members: ['u1', 'u2'], names: { u1: 'Sample Dean', u2: 'Ada Sample' } },
   messages: [

@@ -21,6 +21,7 @@ function Request({ m, onError }: { m: Member; onError: (msg: string) => void }) 
   const [busy, setBusy] = useState<'' | 'approved' | 'declined'>('');
   const contact = useDocLive<{ email?: string }>('contact', () => doc(db, 'contact', m.id), [m.id]);
   const email = contact?.email ?? m.email;
+  const check = useDocLive<{ known?: boolean; onList?: boolean; acIntake?: string }>('check', () => doc(db, 'checks', m.id), [m.id]);
   async function decide(status: 'approved' | 'declined') {
     setBusy(status);
     onError('');
@@ -41,6 +42,18 @@ function Request({ m, onError }: { m: Member; onError: (msg: string) => void }) 
         </View>
       </View>
       {email ? <Text selectable style={{ fontFamily: F.semi, fontSize: 13.5, color: C.ink, marginTop: 14 }}>{email}</Text> : null}
+      {check ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: check.onList ? C.ink : C.red, marginRight: 8 }} />
+          <Text style={{ flex: 1, fontFamily: F.semi, fontSize: 13, lineHeight: 18, color: C.ink }}>
+            {check.onList
+              ? `On SCA's alumni list${check.acIntake ? ` as ${check.acIntake}` : ''}`
+              : check.known
+                ? 'In ActiveCampaign, but not on the alumni list'
+                : "This email isn't in ActiveCampaign"}
+          </Text>
+        </View>
+      ) : null}
       {m.note ? (
         <View style={{ backgroundColor: C.soft, borderRadius: 12, padding: 14, marginTop: 12 }}>
           <Label>They said</Label>

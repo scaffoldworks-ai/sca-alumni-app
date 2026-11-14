@@ -53,6 +53,11 @@ service cloud.firestore {
       allow delete: if signedIn() && (request.auth.uid == uid || isAdmin());
     }
 
+    // The server's check of each new request against SCA's alumni list. Dean only.
+    match /checks/{uid} {
+      allow read: if isAdmin();
+    }
+
     // Who is open to opportunities, and who may see it. Kept apart from the member
     // record so that "SCA team only" really is visible to the member and the Dean alone.
     match /opportunity/{uid} {

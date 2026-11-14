@@ -18,6 +18,7 @@ export const MOCK_DATA: Record<string, unknown> = {
   ],
   pending: [{ id: 'u9', name: 'Dan Waiting', intake: 'Hush', status: 'pending', note: 'We painted the studio wall red the night before portfolio day.' }],
   member: { id: 'u2', name: 'Ada Sample', intake: 'Busk', status: 'approved', role: 'Creative Director', employer: 'Example Agency', city: 'London', discipline: 'Art direction', openPublic: true, portfolio: 'example.com' },
+  check: { id: 'u9', known: true, onList: true, acIntake: 'Hush' },
   contact: { id: 'u9', email: 'dan@example.com' },
   jobs: [
     { id: 'j1', title: 'Senior Art Director', company: 'Example Agency', location: 'London', kind: 'Full-time', postedBy: 'u2', postedByName: 'Ada Sample', status: 'live', marcSays: 'Ada runs a proper department. If you want to make famous work, talk to her.', description: 'Lead art direction across two flagship accounts. Hybrid, three days in Soho.', createdAt: s(2) },

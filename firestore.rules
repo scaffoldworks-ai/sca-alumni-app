@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Keep this list in step with ADMIN_EMAILS in src/lib/firebase.ts.
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['marc@scaffoldworks.ai'];
+    }
+
+    function isApproved() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    match /members/{uid} {
+      // You can always read your own record. Approved members can read other approved members.
+      allow get: if signedIn()
+        && (request.auth.uid == uid || isAdmin() || (isApproved() && resource.data.status == 'approved'));
+      allow list: if isAdmin() || (isApproved() && resource.data.status == 'approved');
+
+      // Anyone can ask to join, but only as "pending" and only under their own sign-in email.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.email == request.auth.token.email;
+
+      // Members edit their own details but cannot approve themselves or change their email.
+      allow update: if isAdmin()
+        || (signedIn()
+            && request.auth.uid == uid
+            && request.resource.data.status == resource.data.status
+            && request.resource.data.email == resource.data.email);
+
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    // Who is open to opportunities, and who may see it. Kept apart from the member
+    // record so that "SCA team only" really is visible to the member and the Dean alone.
+    match /opportunity/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow write: if signedIn() && (request.auth.uid == uid || isAdmin());
+    }
+  }
+}

@@ -10,6 +10,8 @@ trap 'cp "$OUT/app.json.bak" "$ROOT/app.json"' EXIT
 node -e "const f='app.json',d=require('./'+f);d.expo.experiments.baseUrl='/sca-alumni-app';require('fs').writeFileSync(f,JSON.stringify(d,null,2))"
 CI=1 npx expo export --platform web --output-dir "$OUT/site"
 cp "$OUT/site/index.html" "$OUT/site/404.html"
+# Give the public pages real addresses, which the app stores check.
+for page in privacy delete-account; do mkdir -p "$OUT/site/$page"; cp "$OUT/site/index.html" "$OUT/site/$page/index.html"; done
 touch "$OUT/site/.nojekyll"
 REMOTE="$(git remote get-url origin)"
 cd "$OUT/site"
